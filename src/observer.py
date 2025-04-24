@@ -1,56 +1,42 @@
-# observer.py
+# src/observer.py
+
 from selenium.webdriver.common.by import By
-from selenium.webdriver.support.ui import WebDriverWait
-from selenium.webdriver.support import expected_conditions as EC
-from selenium.common.exceptions import TimeoutException, NoSuchElementException
-from tools.logger import log
-import time
+from selenium.webdriver.remote.webdriver import WebDriver
+from selenium.webdriver.remote.webelement import WebElement
+from selenium.common.exceptions import NoSuchElementException
+from tools.logger import log_console
+from time import sleep
 
-def detect_modal(driver):
+def detect_easy_apply_jobs(driver: WebDriver) -> list[WebElement]:
+    """
+    Detect all job cards with the 'Easy Apply' label.
+    """
     try:
-        modal = WebDriverWait(driver, 5).until(
-            EC.presence_of_element_located((By.CLASS_NAME, "jobs-easy-apply-modal"))
-        )
-        log("🧾 Easy Apply modal detected.")
-        return modal
-    except TimeoutException:
-        log("❌ Modal not found.")
-        return None
-
-def detect_form_fields(modal):
-    try:
-        fields = modal.find_elements(By.CSS_SELECTOR, "input, textarea, select")
-        log(f"🧪 Found {len(fields)} form fields.")
-        return fields
+        sleep(1)  # simulate human reading delay
+        job_cards = driver.find_elements(By.CLASS_NAME, "job-card-container")
+        easy_apply_cards = [
+            card for card in job_cards
+            if "Easy Apply" in card.text
+        ]
+        log_console(f"🧾 Found {len(easy_apply_cards)} Easy Apply jobs.")
+        return easy_apply_cards
     except Exception as e:
-        log(f"❌ Failed to detect form fields: {e}")
+        log_console(f"❌ Error detecting Easy Apply jobs: {e}")
         return []
 
-def detect_next_button(driver):
+def observe_modal_fields(driver: WebDriver) -> list[WebElement]:
+    """
+    Return a list of all visible input, textarea, or select fields in the Easy Apply modal.
+    """
     try:
-        return driver.find_element(By.CSS_SELECTOR, "button[aria-label='Continue to next step']")
+        sleep(0.5)
+        modal = driver.find_element(By.CLASS_NAME, "jobs-easy-apply-modal")
+        input_fields = modal.find_elements(By.XPATH, ".//input | .//textarea | .//select")
+        log_console(f"🧪 Found {len(input_fields)} fields inside the modal.")
+        return input_fields
     except NoSuchElementException:
-        return None
-
-def detect_review_button(driver):
-    try:
-        return driver.find_element(By.CSS_SELECTOR, "button[aria-label='Review your application']")
-    except NoSuchElementException:
-        return None
-
-def detect_submit_button(driver):
-    try:
-        return driver.find_element(By.CSS_SELECTOR, "button[aria-label='Submit application']")
-    except NoSuchElementException:
-        return None
-
-def detect_success_modal(driver):
-    try:
-        WebDriverWait(driver, 5).until(
-            EC.presence_of_element_located((By.XPATH, "//h2[contains(text(), 'application was sent')]"))
-        )
-        log("✅ Application success modal detected.")
-        return True
-    except TimeoutException:
-        log("⚠️ No success modal detected.")
-        return False
+        log_console("❌ Modal not found.")
+        return []
+    except Exception as e:
+        log_console(f"❌ Error observing modal fields: {e}")
+        return []
